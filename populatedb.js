@@ -28,6 +28,8 @@ async function main() {
   console.log("Debug: About to connect");
   await mongoose.connect(mongoDB);
   console.log("Debug: Should be connected?");
+  await mongoose.connection.db.dropDatabase();
+  console.log("Debug: Database cleared");
   await createGenres();
   await createAuthors();
   await createBooks();

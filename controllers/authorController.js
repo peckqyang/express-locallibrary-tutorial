@@ -1,5 +1,6 @@
 const Author = require("../models/author");
 const Book = require("../models/book");
+const author = require("../models/author");
 const asyncHandler = require("express-async-handler");
 const { Mongoose } = require("mongoose");
 const { body, validationResult } = require("express-validator");
@@ -8,9 +9,19 @@ const { DateTime } = require("luxon");
 // Display list of all Authors
 exports.author_list = asyncHandler(async (req, res, next) => {
   const allAuthors = await Author.find().sort({ family_name: 1 }).exec();
+
+  // Get just deleted author if there is one
+  const justDeletedAuthorName = req.flash("justDeletedAuthorName");
+  console.log("Retrieved justDeletedAuthor flash:", justDeletedAuthorName);
+  console.log(justDeletedAuthorName.prototype);
+  console.log(typeof justDeletedAuthorName);
+
+  console.log(`justDeletedAuthor from author_list ${justDeletedAuthorName}`);
+
   res.render("author_list", {
     title: "Author List",
     author_list: allAuthors,
+    just_deleted_author_name: justDeletedAuthorName,
   });
 });
 
@@ -111,12 +122,53 @@ exports.author_create_post = [
 
 // Display Author delete form on GET.
 exports.author_delete_get = asyncHandler(async (req, res, next) => {
-  res.send("NOT IMPLEMENTED: Author delete GET");
+  // Get details of authors and all their books (in parallel)
+  const [author, allBooksByAuthor] = await Promise.all([
+    Author.findById(req.params.id).exec(),
+    Book.find({ author: req.params.id }, "title summary").exec(),
+  ]);
+
+  if (author === null) {
+    // No results.
+    res.redirect("/catalog/authors");
+  }
+
+  res.render("author_delete", {
+    title: "Delete Author",
+    author: author,
+    author_books: allBooksByAuthor,
+  });
 });
 
 // Handle Author delete on POST.
 exports.author_delete_post = asyncHandler(async (req, res, next) => {
-  res.send("NOT IMPLEMENTED: Author delete POST");
+  // Get details of authors and all their books (in parallel)
+  const [author, allBooksByAuthor] = await Promise.all([
+    Author.findById(req.params.id).exec(),
+    Book.find({ author: req.params.id }, "title summary").exec(),
+  ]);
+
+  if (allBooksByAuthor.length > 0) {
+    // Author has books. Render in same way as for GET route
+    res.render("author_delete", {
+      title: "Delete Author",
+      author: author,
+      author_books: allBooksByAuthor,
+    });
+    return;
+  } else {
+    console.log(author);
+    // Author has no books. Delete object and redirect to the list of authors.
+    await Author.findByIdAndDelete(req.body.authorid);
+    console.log("Setting justDeletedAuthor flash:", author.name);
+    console.log(author.prototype);
+    console.log(typeof author);
+    req.flash("justDeletedAuthorName", author.name);
+
+    console.log(author);
+
+    res.redirect("/catalog/authors");
+  }
 });
 
 // Display Author update form on GET.

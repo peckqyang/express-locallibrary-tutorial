@@ -1,5 +1,6 @@
 const BookInstance = require("../models/bookinstance");
 const asyncHandler = require("express-async-handler");
+const { Mongoose } = require("mongoose");
 
 // Display list of all BookInstances.
 exports.bookinstance_list = asyncHandler(async (req, res, next) => {
@@ -13,7 +14,29 @@ exports.bookinstance_list = asyncHandler(async (req, res, next) => {
 
 // Display detail page for a specific BookInstance.
 exports.bookinstance_detail = asyncHandler(async (req, res, next) => {
-  res.send(`NOT IMPLEMENTED: BookInstance detail: ${req.params.id}`);
+  // Check if the provided ID is a valid ObjectId
+  if (!Mongoose.prototype.isValidObjectId(req.params.id)) {
+    const err = new Error("Invalid genre ID");
+    err.status = 400; // Bad Request
+    return next(err);
+  }
+
+  // Get details of genre and all associated books (in parallel)
+  const bookInstance = await BookInstance.findById(req.params.id)
+    .populate("book")
+    .exec();
+
+  if (bookInstance === null) {
+    // No results.
+    const err = new Error("Book Instance not found");
+    err.status = 404;
+    return next(err);
+  }
+
+  res.render("bookInstance_detail", {
+    title: "Bookinstance Detail",
+    bookinstance: bookInstance,
+  });
 });
 
 // Display BookInstance create form on GET.

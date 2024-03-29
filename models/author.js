@@ -16,15 +16,17 @@ const AuthorSchema = new Schema({
   },
   date_of_birth: {
     type: Date,
+    required: false,
     validate: {
       validator: function (value) {
-        return value instanceof Date && !isNaN(value);
+        return !value || (value instanceof Date && !isNaN(value));
       },
       message: "Invalid date of birth",
     },
   },
   date_of_death: {
     type: Date,
+    required: false,
     validate: {
       validator: function (value) {
         return !value || (value instanceof Date && !isNaN(value));
@@ -63,6 +65,13 @@ AuthorSchema.virtual("formatted_date_of_birth").get(function () {
 AuthorSchema.virtual("formatted_date_of_death").get(function () {
   return this.date_of_death
     ? DateTime.fromJSDate(this.date_of_death).toLocaleString(DateTime.DATE_MED)
+    : "";
+});
+
+// Virtual for author's lifespan
+AuthorSchema.virtual("formatted_lifespan").get(function () {
+  return this.formatted_date_of_birth
+    ? `${this.formatted_date_of_birth} - ${this.formatted_date_of_death}`
     : "";
 });
 

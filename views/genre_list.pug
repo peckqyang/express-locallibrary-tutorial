@@ -2,6 +2,9 @@ extends layout
 
 block content
   h1= title
+  if just_deleted_genre.length
+    p Just deleted the genre, #{just_deleted_genre}
+    
   if genre_list.length
     ul
       each genre in genre_list

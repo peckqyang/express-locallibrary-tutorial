@@ -2,6 +2,8 @@ extends layout
 
 block content 
   h1= title 
+  if just_deleted_bookinstance.length
+    p Just deleted the book instance, #{just_deleted_bookinstance}
 
   if bookinstance_list.length
     ul 

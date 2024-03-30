@@ -2,6 +2,9 @@ extends layout
 
 block content
   h1= title
+  if just_deleted_book_name.length
+    p Just deleted the book, #{just_deleted_book_name}
+
   if book_list.length
     ul
       each book in book_list

@@ -5,7 +5,7 @@ block content
 
   p #[strong Author: ]
     a(href=book.author.url) #{book.author.name}
-  p #[strong Summary:] #{book.summary}
+  p #[strong Summary:] !{book.decoded_summary}
   p #[strong ISBN:] #{book.isbn}
   p #[strong Genre: ]
     each val, index in book.genre
@@ -35,6 +35,6 @@ block content
 
   hr
   p
-    a(href=book.url+'/delete') Delete Book
+    a(href=book.url+'/delete') Delete book
   p
-    a(href=book.url+'/update') Update Book
+    a(href=book.url+'/update') Update book

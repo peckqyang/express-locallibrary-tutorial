@@ -11,6 +11,11 @@ block content
         each book in genre_books
           dt
             a(href=book.url) #{book.title} 
-          dd  #{book.summary}
+          dd  !{book.decoded_summary}
     else
       p This genre has no books.
+  hr
+  p
+    a(href=genre.url+'/delete') Delete genre
+  p
+    a(href=genre.url+'/update') Update genre

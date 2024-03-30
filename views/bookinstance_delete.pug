@@ -1,0 +1,13 @@
+extends layout
+
+block content
+
+  h1 #{title}: #{bookinstance._id}
+
+  p Do you really want to delete the copy, #{bookinstance._id} of #{bookinstance.book.title} : #{bookinstance.imprint}?
+
+  form(method='POST')
+    div.form-group
+      input#bookinstanceid.form-control(type='hidden', name='bookinstanceid', value=bookinstance._id )
+
+    button.btn.btn-primary(type='submit') Delete

@@ -13,10 +13,6 @@ exports.author_list = asyncHandler(async (req, res, next) => {
   // Get just deleted author if there is one
   const justDeletedAuthorName = req.flash("justDeletedAuthorName");
   console.log("Retrieved justDeletedAuthor flash:", justDeletedAuthorName);
-  console.log(justDeletedAuthorName.prototype);
-  console.log(typeof justDeletedAuthorName);
-
-  console.log(`justDeletedAuthor from author_list ${justDeletedAuthorName}`);
 
   res.render("author_list", {
     title: "Author List",
@@ -27,13 +23,6 @@ exports.author_list = asyncHandler(async (req, res, next) => {
 
 // Display detail page for a specific Author
 exports.author_detail = asyncHandler(async (req, res, next) => {
-  // Check if the provided ID is a valid ObjectId
-  if (!Mongoose.prototype.isValidObjectId(req.params.id)) {
-    const err = new Error("Invalid author ID");
-    err.status = 400; // Bad Request
-    return next(err);
-  }
-
   // Get details of author and all associated books (in parallel)
   const [author, author_books] = await Promise.all([
     Author.findById(req.params.id).exec(),
@@ -148,7 +137,12 @@ exports.author_delete_post = asyncHandler(async (req, res, next) => {
     Book.find({ author: req.params.id }, "title summary").exec(),
   ]);
 
-  if (allBooksByAuthor.length > 0) {
+  if (author === null) {
+    // No results.
+    const err = new Error("Author not found");
+    err.status = 404;
+    return next(err);
+  } else if (allBooksByAuthor.length > 0) {
     // Author has books. Render in same way as for GET route
     res.render("author_delete", {
       title: "Delete Author",
@@ -161,8 +155,6 @@ exports.author_delete_post = asyncHandler(async (req, res, next) => {
     // Author has no books. Delete object and redirect to the list of authors.
     await Author.findByIdAndDelete(req.body.authorid);
     console.log("Setting justDeletedAuthor flash:", author.name);
-    console.log(author.prototype);
-    console.log(typeof author);
     req.flash("justDeletedAuthorName", author.name);
 
     console.log(author);
@@ -173,10 +165,84 @@ exports.author_delete_post = asyncHandler(async (req, res, next) => {
 
 // Display Author update form on GET.
 exports.author_update_get = asyncHandler(async (req, res, next) => {
-  res.send("NOT IMPLEMENTED: Author update GET");
+  // Get author for form.
+  const author = await Author.findById(req.params.id).exec();
+
+  if (author === null) {
+    // No results.
+    const err = new Error("Author not found");
+    err.status = 404;
+    return next(err);
+  }
+
+  res.render("author_form", {
+    title: "Update Author",
+    author: author,
+  });
 });
 
 // Handle Author update on POST.
-exports.author_update_post = asyncHandler(async (req, res, next) => {
-  res.send("NOT IMPLEMENTED: Author update POST");
-});
+exports.author_update_post = [
+  // Sanitize and validate form inputs
+  body("first_name")
+    .trim()
+    .isLength({ min: 1 })
+    .escape()
+    .withMessage("First name must be specified.")
+    .isAlphanumeric()
+    .withMessage("First name has non-alphanumeric characters."),
+  body("family_name")
+    .trim()
+    .isLength({ min: 1 })
+    .escape()
+    .withMessage("Family name must be specified.")
+    .isAlphanumeric()
+    .withMessage("Family name has non-alphanumeric characters."),
+  body("date_of_birth")
+    .optional({ values: "falsy" })
+    .isISO8601()
+    .customSanitizer((value) => {
+      return DateTime.fromISO(value).toJSDate();
+    }),
+  body("date_of_death")
+    .optional({ values: "falsy" })
+    .isISO8601()
+    .customSanitizer((value) => {
+      return DateTime.fromISO(value).toJSDate();
+    }),
+
+  // Process request after validation and sanitization.
+  asyncHandler(async (req, res, next) => {
+    // Extract the validation errors from a request.
+    const errors = validationResult(req);
+
+    // Create Author object with escaped/trimmed data and old id.
+    const author = new Author({
+      first_name: req.body.first_name,
+      family_name: req.body.family_name,
+      date_of_birth: req.body.date_of_birth,
+      date_of_death: req.body.date_of_death,
+      _id: req.params.id, // Required or a new ID will be assigned
+    });
+
+    if (!errors.isEmpty()) {
+      // There are errors. Render form again with sanitized values/errors messages.
+      res.render("author_form", {
+        title: "Create Author",
+        author: author,
+        errors: errors.array(),
+      });
+      return;
+    } else {
+      //Data from form is valid. Update the record.
+      const updatedAuthor = await Author.findByIdAndUpdate(
+        req.params.id,
+        author,
+        {}
+      );
+
+      // Redirect to new author record.
+      res.redirect(author.url);
+    }
+  }),
+];
